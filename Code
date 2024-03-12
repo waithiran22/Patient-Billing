@@ -1,0 +1,46 @@
+library(kableExtra)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+# Set the working directory to where your files are located
+setwd('C:/Users/HP/OneDrive/Documents/DATA 332')
+
+# Load the data
+df_billing <- read_excel("Billing.xlsx")
+df_Patient <- read_excel("Patient.xlsx")
+df_Visit <- read_excel("Visit.xlsx")
+
+# Convert dates
+df_Visit$VisitDate <- as.Date(df_Visit$VisitDate)
+
+# Prepare the patient data
+df_patient_1 <- df_Patient %>%
+  select(LastName, FirstName, Phone, Address, City, Email, PatientID) %>%
+  distinct()
+
+# Join visits with patient data for earlier visits before 2021
+date <- as.Date("2021/01/01")
+EarlierVisits <- df_Visit %>%
+  select(VisitID, PatientID, Reason, VisitDate) %>%
+  left_join(df_patient_1, by = "PatientID") %>%
+  filter(VisitDate < date)
+
+# Join visits with patient data for all visits
+allVisits <- df_Visit %>%
+  select(VisitID, PatientID, Reason, VisitDate) %>%
+  left_join(df_patient_1, by = "PatientID")
+
+# Summarize visits by city
+patients_all_city <- allVisits %>%
+  group_by(City) %>%
+  summarise(number = n())
+
+# Example visualization: Number of visits per city
+ggplot(patients_all_city, aes(x = reorder(City, number), y = number, fill = City)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Number of Visits per City", x = "City", y = "Number of Visits") +
+  coord_flip()
+
